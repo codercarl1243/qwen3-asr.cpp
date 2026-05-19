@@ -47,6 +47,10 @@ struct transcribe_result {
 // Progress callback type
 using progress_callback_t = std::function<void(int tokens_generated, int max_tokens)>;
 
+// Per-token text callback type (audio/08 streaming contract).
+// Fired once per decoded token with the UTF-8 fragment for that token.
+using token_callback_t = std::function<void(const std::string & token_text)>;
+
 // Main ASR class that orchestrates the full pipeline
 class Qwen3ASR {
 public:
@@ -70,6 +74,17 @@ public:
     
     // Set progress callback
     void set_progress_callback(progress_callback_t callback);
+
+    // Set per-token streaming callback. Fires once per decoded token from
+    // inside the decode loop. Pass an empty std::function to clear.
+    void set_token_callback(token_callback_t callback);
+
+    // Streaming transcription. Fires the token callback once per decoded
+    // token. Returns true on success; on false, error string is in
+    // get_error(). 16kHz mono f32 expected; sample_rate must be 16000.
+    bool transcribe_stream(const float * samples, int n_samples,
+                           int sample_rate,
+                           const transcribe_params & params = transcribe_params());
     
     // Get error message
     const std::string & get_error() const { return error_msg_; }
@@ -108,6 +123,7 @@ private:
     bool model_loaded_ = false;
     std::string error_msg_;
     progress_callback_t progress_callback_;
+    token_callback_t token_callback_;
 };
 
 bool load_audio_file(const std::string & path, std::vector<float> & samples, int & sample_rate);

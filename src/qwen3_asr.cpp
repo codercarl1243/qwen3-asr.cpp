@@ -238,10 +238,14 @@ bool Qwen3ASR::decode_greedy(const std::vector<int32_t> & input_tokens,
     int32_t n_input = input_tokens.size();
     
     int32_t next_token = sample_greedy(logits.data(), vocab_size);
-    
+
     output_tokens.clear();
     output_tokens.push_back(next_token);
-    
+
+    if (token_callback_ && next_token != cfg.eos_token_id) {
+        token_callback_(decoder_.decode_token(next_token));
+    }
+
     if (progress_callback_) {
         progress_callback_(1, params.max_tokens);
     }
@@ -264,9 +268,13 @@ bool Qwen3ASR::decode_greedy(const std::vector<int32_t> & input_tokens,
         
         next_token = sample_greedy(logits.data(), vocab_size);
         output_tokens.push_back(next_token);
-        
+
+        if (token_callback_ && next_token != cfg.eos_token_id) {
+            token_callback_(decoder_.decode_token(next_token));
+        }
+
         n_past += 1;
-        
+
         if (progress_callback_) {
             progress_callback_(output_tokens.size(), params.max_tokens);
         }
@@ -299,6 +307,31 @@ int32_t Qwen3ASR::sample_greedy(const float * logits, int32_t vocab_size) {
 
 void Qwen3ASR::set_progress_callback(progress_callback_t callback) {
     progress_callback_ = std::move(callback);
+}
+
+void Qwen3ASR::set_token_callback(token_callback_t callback) {
+    token_callback_ = std::move(callback);
+}
+
+bool Qwen3ASR::transcribe_stream(const float * samples, int n_samples,
+                                 int sample_rate,
+                                 const transcribe_params & params) {
+    if (!model_loaded_) {
+        error_msg_ = "Model not loaded";
+        return false;
+    }
+    if (sample_rate != QWEN_SAMPLE_RATE) {
+        error_msg_ = "Audio must be 16kHz, got " + std::to_string(sample_rate) + " Hz";
+        return false;
+    }
+    transcribe_result r = transcribe_internal(samples, n_samples, params);
+    if (!r.success) {
+        if (!r.error_msg.empty()) {
+            error_msg_ = r.error_msg;
+        }
+        return false;
+    }
+    return true;
 }
 
 bool load_audio_file(const std::string & path, std::vector<float> & samples, int & sample_rate) {

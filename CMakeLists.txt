@@ -91,12 +91,37 @@ target_include_directories(audio_injection PUBLIC
 # Qwen3 ASR library (full pipeline)
 add_library(qwen3_asr STATIC
     src/qwen3_asr.cpp
+    src/qwen3asr_c_api.cpp
 )
 target_include_directories(qwen3_asr PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${GGML_DIR}/include
 )
 target_link_libraries(qwen3_asr PUBLIC
+    mel_spectrogram
+    audio_encoder
+    text_decoder
+    audio_injection
+    Threads::Threads
+)
+
+# Shared library exposing the C API to FFI consumers (e.g. the Rust
+# asr_engine crate). The static target above already carries the same
+# symbols for builds that prefer static linkage; this target exists so the
+# host toolchain can dlopen / dynamic-link when desired.
+add_library(qwen3asr_shared SHARED
+    src/qwen3asr_c_api.cpp
+    src/qwen3_asr.cpp
+)
+set_target_properties(qwen3asr_shared PROPERTIES
+    OUTPUT_NAME "qwen3asr"
+    POSITION_INDEPENDENT_CODE ON
+)
+target_include_directories(qwen3asr_shared PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${GGML_DIR}/include
+)
+target_link_libraries(qwen3asr_shared PUBLIC
     mel_spectrogram
     audio_encoder
     text_decoder
@@ -275,11 +300,12 @@ target_link_libraries(test_encoder_no_chunk PRIVATE
 )
 
 # Install targets
-install(TARGETS mel_spectrogram audio_encoder text_decoder audio_injection qwen3_asr forced_aligner qwen3-asr-cli
+install(TARGETS mel_spectrogram audio_encoder text_decoder audio_injection qwen3_asr qwen3asr_shared forced_aligner qwen3-asr-cli
     ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
     RUNTIME DESTINATION bin
 )
-install(FILES src/mel_spectrogram.h src/audio_encoder.h src/gguf_loader.h src/text_decoder.h src/audio_injection.h src/qwen3_asr.h src/forced_aligner.h
+install(FILES src/mel_spectrogram.h src/audio_encoder.h src/gguf_loader.h src/text_decoder.h src/audio_injection.h src/qwen3_asr.h src/qwen3asr_c_api.h src/forced_aligner.h
     DESTINATION include
 )
 
@@ -301,6 +327,20 @@ add_test(NAME audio_injection_test
     COMMAND test_injection
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+# C API smoke test — runs without any model weights so CI can exercise it.
+if(BUILD_TESTING)
+    add_executable(test_c_api_stub
+        tests/test_c_api_stub.cpp
+    )
+    target_link_libraries(test_c_api_stub PRIVATE
+        qwen3_asr
+    )
+    add_test(NAME c_api_stub_test
+        COMMAND test_c_api_stub
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+endif()
 
 # Test conv1 output
 add_executable(test_conv1
