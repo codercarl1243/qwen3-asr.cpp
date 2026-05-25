@@ -19,7 +19,7 @@
     "intermediate_size": 3072,
     "activation": "silu",
     "rope_theta": 1000000,
-    "rms_norm_eps": 1e-06
+    "rms_norm_eps": 1e-6
   },
   "vocab_size": 152064,
   "classify_num": 5000,

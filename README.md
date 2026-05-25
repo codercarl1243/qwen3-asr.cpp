@@ -18,11 +18,11 @@ A high-performance C++ implementation of Qwen3-ASR and Qwen3-ForcedAligner using
 
 ## Supported Models
 
-| Model | Size | Description |
-|-------|------|-------------|
-| `qwen3-asr-0.6b-f16.gguf` | ~1.8 GB | ASR model, F16 precision |
-| `qwen3-asr-0.6b-q8_0.gguf` | ~1.3 GB | ASR model, Q8_0 quantized |
-| `qwen3-forced-aligner-0.6b-f16.gguf` | ~1.8 GB | Forced alignment model |
+| Model                                | Size    | Description               |
+| ------------------------------------ | ------- | ------------------------- |
+| `qwen3-asr-0.6b-f16.gguf`            | ~1.8 GB | ASR model, F16 precision  |
+| `qwen3-asr-0.6b-q8_0.gguf`           | ~1.3 GB | ASR model, Q8_0 quantized |
+| `qwen3-forced-aligner-0.6b-f16.gguf` | ~1.8 GB | Forced alignment model    |
 
 ## Requirements
 
@@ -101,6 +101,7 @@ Automatically transcribe and then align the result (recommended):
 ```
 
 This mode automatically:
+
 - Runs ASR to get the transcript
 - Detects the language from the ASR output
 - Runs forced alignment with the detected language
@@ -109,17 +110,19 @@ This mode automatically:
 ### Output Formats
 
 **Transcription** outputs plain text:
+
 ```
 language Korean 안녕하세요 여러분 오늘은...
 ```
 
 **Forced Alignment** outputs JSON with word-level timestamps:
+
 ```json
 {
   "words": [
-    {"word": "안녕하세요", "start": 0.000, "end": 0.480},
-    {"word": "여러분", "start": 0.480, "end": 0.880},
-    {"word": "오늘은", "start": 0.880, "end": 1.200}
+    { "word": "안녕하세요", "start": 0.0, "end": 0.48 },
+    { "word": "여러분", "start": 0.48, "end": 0.88 },
+    { "word": "오늘은", "start": 0.88, "end": 1.2 }
   ]
 }
 ```
@@ -128,14 +131,14 @@ language Korean 안녕하세요 여러분 오늘은...
 
 Benchmark on 92-second Korean audio, Apple M2 Pro (10-core CPU, 16-core GPU):
 
-| Stage | Time |
-|-------|------|
-| Mel spectrogram | 98 ms |
-| Audio encoding | 715 ms |
-| Text decoding (323 tokens) | 4,194 ms |
-| **ASR Total** | **5,007 ms** |
-| Forced alignment (183 words) | 12,998 ms |
-| **Combined Total** | **18,005 ms** |
+| Stage                        | Time          |
+| ---------------------------- | ------------- |
+| Mel spectrogram              | 98 ms         |
+| Audio encoding               | 715 ms        |
+| Text decoding (323 tokens)   | 4,194 ms      |
+| **ASR Total**                | **5,007 ms**  |
+| Forced alignment (183 words) | 12,998 ms     |
+| **Combined Total**           | **18,005 ms** |
 
 **Memory Usage:** ~247 MB RSS, ~294 MB Metal
 
@@ -181,23 +184,23 @@ python scripts/convert_hf_to_gguf.py \
 
 The model supports 30+ languages:
 
-| Language | Code | Language | Code |
-|----------|------|----------|------|
-| Chinese (Mandarin) | zh | English | en |
-| Cantonese | yue | Japanese | ja |
-| Korean | ko | German | de |
-| French | fr | Spanish | es |
-| Italian | it | Portuguese | pt |
-| Russian | ru | Arabic | ar |
-| Hindi | hi | Thai | th |
-| Vietnamese | vi | Indonesian | id |
-| Malay | ms | Turkish | tr |
-| Polish | pl | Dutch | nl |
-| Swedish | sv | Norwegian | no |
-| Danish | da | Finnish | fi |
-| Greek | el | Czech | cs |
-| Hungarian | hu | Romanian | ro |
-| Ukrainian | uk | Hebrew | he |
+| Language           | Code | Language   | Code |
+| ------------------ | ---- | ---------- | ---- |
+| Chinese (Mandarin) | zh   | English    | en   |
+| Cantonese          | yue  | Japanese   | ja   |
+| Korean             | ko   | German     | de   |
+| French             | fr   | Spanish    | es   |
+| Italian            | it   | Portuguese | pt   |
+| Russian            | ru   | Arabic     | ar   |
+| Hindi              | hi   | Thai       | th   |
+| Vietnamese         | vi   | Indonesian | id   |
+| Malay              | ms   | Turkish    | tr   |
+| Polish             | pl   | Dutch      | nl   |
+| Swedish            | sv   | Norwegian  | no   |
+| Danish             | da   | Finnish    | fi   |
+| Greek              | el   | Czech      | cs   |
+| Hungarian          | hu   | Romanian   | ro   |
+| Ukrainian          | uk   | Hebrew     | he   |
 
 ## Audio Requirements
 
@@ -207,6 +210,7 @@ The model supports 30+ languages:
 - **Bit depth**: 16-bit
 
 Convert audio with ffmpeg:
+
 ```bash
 ffmpeg -i input.mp3 -ar 16000 -ac 1 -c:a pcm_s16le output.wav
 ```

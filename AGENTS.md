@@ -55,7 +55,7 @@ It performs speech recognition and forced alignment with word-level timestamps.
 ### Conventions
 
 - **Namespace**: `qwen3_asr::`
-- **Error handling**: bool return + error_msg_ member
+- **Error handling**: bool return + error*msg* member
 - **Timing**: `QWEN3_TIMER_SCOPED("name")` macros from `src/timing.h`
 - **Memory**: RAII with explicit cleanup in destructors; mmap cleanup via munmap
 - **Tensor naming**: follows HuggingFace naming convention for weight mapping
@@ -71,6 +71,7 @@ It performs speech recognition and forced alignment with word-level timestamps.
 ## Performance Notes
 
 Benchmark on 92-second Korean audio, Apple M2 Pro:
+
 - Mel spectrogram: 98 ms
 - Audio encoding: 715 ms
 - Text decoding: 4,194 ms (323 tokens)
@@ -108,6 +109,7 @@ Memory: ~247 MB RSS, ~294 MB Metal
 ## Contributing
 
 When making changes:
+
 1. Run existing tests to verify no regression
 2. Add new tests for new functionality
 3. Update AGENTS.md if architecture changes

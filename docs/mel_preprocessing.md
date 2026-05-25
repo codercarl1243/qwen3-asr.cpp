@@ -10,38 +10,38 @@ Qwen3-ASR uses **WhisperFeatureExtractor** for audio preprocessing, which means 
 
 ### Qwen3-ASR Parameters (from `preprocessor_config.json`)
 
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| `feature_size` | 128 | Number of mel frequency bins |
-| `n_fft` | 400 | FFT window size (25ms at 16kHz) |
-| `hop_length` | 160 | Hop length between frames (10ms at 16kHz) |
-| `chunk_length` | 30 | Audio chunk length in seconds |
-| `n_samples` | 480000 | Samples per chunk (30s × 16kHz) |
-| `nb_max_frames` | 3000 | Maximum mel frames (480000 / 160) |
-| `padding_side` | "right" | Padding direction |
-| `padding_value` | 0.0 | Value used for padding |
-| `dither` | 0.0 | No dithering applied |
+| Parameter       | Value   | Description                               |
+| --------------- | ------- | ----------------------------------------- |
+| `feature_size`  | 128     | Number of mel frequency bins              |
+| `n_fft`         | 400     | FFT window size (25ms at 16kHz)           |
+| `hop_length`    | 160     | Hop length between frames (10ms at 16kHz) |
+| `chunk_length`  | 30      | Audio chunk length in seconds             |
+| `n_samples`     | 480000  | Samples per chunk (30s × 16kHz)           |
+| `nb_max_frames` | 3000    | Maximum mel frames (480000 / 160)         |
+| `padding_side`  | "right" | Padding direction                         |
+| `padding_value` | 0.0     | Value used for padding                    |
+| `dither`        | 0.0     | No dithering applied                      |
 
 ### whisper.cpp Parameters (from `whisper.h`)
 
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| `WHISPER_SAMPLE_RATE` | 16000 | Sample rate in Hz |
-| `WHISPER_N_FFT` | 400 | FFT window size |
-| `WHISPER_HOP_LENGTH` | 160 | Hop length |
-| `WHISPER_CHUNK_SIZE` | 30 | Chunk size in seconds |
+| Parameter             | Value | Description           |
+| --------------------- | ----- | --------------------- |
+| `WHISPER_SAMPLE_RATE` | 16000 | Sample rate in Hz     |
+| `WHISPER_N_FFT`       | 400   | FFT window size       |
+| `WHISPER_HOP_LENGTH`  | 160   | Hop length            |
+| `WHISPER_CHUNK_SIZE`  | 30    | Chunk size in seconds |
 
 ### Comparison
 
-| Parameter | Qwen3-ASR | whisper.cpp | Match? |
-|-----------|-----------|-------------|--------|
-| Sample rate | 16000 Hz | 16000 Hz | ✅ |
-| n_fft | 400 | 400 | ✅ |
-| hop_length | 160 | 160 | ✅ |
-| n_mels | 128 | 80/128* | ✅ |
-| chunk_length | 30s | 30s | ✅ |
+| Parameter    | Qwen3-ASR | whisper.cpp | Match? |
+| ------------ | --------- | ----------- | ------ |
+| Sample rate  | 16000 Hz  | 16000 Hz    | ✅     |
+| n_fft        | 400       | 400         | ✅     |
+| hop_length   | 160       | 160         | ✅     |
+| n_mels       | 128       | 80/128\*    | ✅     |
+| chunk_length | 30s       | 30s         | ✅     |
 
-*whisper.cpp supports both 80 and 128 mel bins depending on model.
+\*whisper.cpp supports both 80 and 128 mel bins depending on model.
 
 ## Algorithm Steps
 
@@ -61,7 +61,7 @@ samples_padded.resize(n_samples + stage_1_pad + stage_2_pad * 2);
 std::copy(samples, samples + n_samples, samples_padded.begin() + stage_2_pad);
 
 // Pad zeros at end
-std::fill(samples_padded.begin() + n_samples + stage_2_pad, 
+std::fill(samples_padded.begin() + n_samples + stage_2_pad,
           samples_padded.begin() + n_samples + stage_1_pad + 2 * stage_2_pad, 0);
 
 // Reflective pad at beginning (mirror first 200 samples)
@@ -88,19 +88,19 @@ Reference: https://pytorch.org/docs/stable/generated/torch.hann_window.html
 // For each frame
 for (int i = 0; i < mel.n_len; i++) {
     const int offset = i * frame_step;  // frame_step = 160
-    
+
     // Apply Hann window
     for (int j = 0; j < frame_size; j++) {  // frame_size = 400
         fft_in[j] = hann[j] * samples[offset + j];
     }
-    
+
     // Compute FFT
     fft(fft_in.data(), frame_size, fft_out.data());
-    
+
     // Calculate power spectrum (magnitude squared)
     // n_fft = 201 (only positive frequencies: 0 to Nyquist)
     for (int j = 0; j < n_fft; j++) {
-        fft_out[j] = fft_out[2*j + 0] * fft_out[2*j + 0] + 
+        fft_out[j] = fft_out[2*j + 0] * fft_out[2*j + 0] +
                      fft_out[2*j + 1] * fft_out[2*j + 1];
     }
 }
@@ -143,7 +143,7 @@ for (int i = 0; i < mel.n_mel * mel.n_len; i++) {
     if (mel.data[i] < mmax) {
         mel.data[i] = mmax;
     }
-    
+
     // Normalize: (mel + 4.0) / 4.0
     mel.data[i] = (mel.data[i] + 4.0) / 4.0;
 }
@@ -152,6 +152,7 @@ for (int i = 0; i < mel.n_mel * mel.n_len; i++) {
 **Normalization formula**: `normalized = (log10_mel + 4.0) / 4.0`
 
 This maps the typical log-mel range to approximately [0, 1]:
+
 - log10(1e-10) = -10 → clamped to max-8, then normalized
 - Typical speech values around -2 to 0 → normalized to 0.5 to 1.0
 
@@ -182,6 +183,7 @@ struct whisper_filters {
 ```
 
 The filterbank converts linear frequency bins to mel scale using triangular filters:
+
 - **fmin**: 0 Hz (typically)
 - **fmax**: 8000 Hz (Nyquist frequency at 16kHz sample rate)
 - **n_mels**: 128 triangular filters
@@ -201,6 +203,7 @@ The mel spectrogram is stored in **mel-major order**:
 ## Reference Implementation
 
 For exact parity with HuggingFace, we have reference mel output at:
+
 - `tests/reference/mel.npy` - Shape: [128, 3000]
 
 ## Implementation Recommendations
@@ -223,16 +226,16 @@ For exact parity with HuggingFace, we have reference mel output at:
 
 ### Differences to Watch
 
-| Aspect | whisper.cpp | Potential Qwen3-ASR Difference |
-|--------|-------------|-------------------------------|
-| Padding | 30s zeros + reflective | Verify same behavior |
-| Normalization | (mel + 4.0) / 4.0 | Verify same formula |
-| Filterbank | From model file | May need to generate |
+| Aspect        | whisper.cpp            | Potential Qwen3-ASR Difference |
+| ------------- | ---------------------- | ------------------------------ |
+| Padding       | 30s zeros + reflective | Verify same behavior           |
+| Normalization | (mel + 4.0) / 4.0      | Verify same formula            |
+| Filterbank    | From model file        | May need to generate           |
 
 ## Verification Strategy
 
 1. Generate mel spectrogram from test audio using our C++ implementation
-2. Compare against `tests/reference/mel.npy` 
+2. Compare against `tests/reference/mel.npy`
 3. Acceptable tolerance: < 1e-5 absolute difference
 
 ## Code References
